@@ -5,27 +5,12 @@ use std::path;
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 
+use crate::api::configs::*;
 use crate::language::Language;
-
-fn default_input_language() -> Language {
-    Language::Auto
-}
 
 fn default_output_language() -> Language {
     Language::EN
 }
-
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct OpencodeConfig {
-    api: String,
-    model: String,
-}
-
-#[allow(dead_code)]
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct LibretranslateConfig {} // TODO
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "provider", deny_unknown_fields)]
@@ -40,7 +25,7 @@ pub enum Providers {
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AppLanguages {
-    #[serde(default = "default_input_language")]
+    #[serde(default)]
     pub input_language: Language,
     #[serde(default = "default_output_language")]
     pub target_language: Language,

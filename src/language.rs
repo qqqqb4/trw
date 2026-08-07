@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum Language {
     #[default]
@@ -62,6 +62,61 @@ pub enum Language {
 }
 
 impl Language {
+    pub const ALL: &'static [Language] = &[
+        Language::Auto,
+        Language::EN,
+        Language::SQ,
+        Language::AR,
+        Language::AZ,
+        Language::EU,
+        Language::BN,
+        Language::BG,
+        Language::CA,
+        Language::ZhHans,
+        Language::ZhHant,
+        Language::CS,
+        Language::DA,
+        Language::NL,
+        Language::EO,
+        Language::ET,
+        Language::FI,
+        Language::FR,
+        Language::GL,
+        Language::DE,
+        Language::EL,
+        Language::HE,
+        Language::HI,
+        Language::HU,
+        Language::ID,
+        Language::GA,
+        Language::IT,
+        Language::JA,
+        Language::KO,
+        Language::KY,
+        Language::LV,
+        Language::LT,
+        Language::MS,
+        Language::NB,
+        Language::FA,
+        Language::PL,
+        Language::PT,
+        Language::PtBR,
+        Language::RO,
+        Language::RU,
+        Language::SR,
+        Language::SK,
+        Language::SL,
+        Language::ES,
+        Language::SW,
+        Language::SV,
+        Language::TL,
+        Language::TH,
+        Language::TR,
+        Language::UK,
+        Language::UR,
+        Language::VI,
+    ];
+
     pub fn as_str(&self) -> &'static str {
         match self {
             Language::Auto => "Auto",
