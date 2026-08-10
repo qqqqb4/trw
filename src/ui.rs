@@ -1,7 +1,8 @@
-use std::mem::swap;
 use std::time::{Duration, Instant};
 
+use eframe::egui::TextBuffer;
 use eframe::*;
+use egui::PopupCloseBehavior;
 
 use crate::config::AppConfig;
 use crate::language::Language;
@@ -13,6 +14,8 @@ pub struct App {
     output: String,
     input_language: Language,
     target_language: Language,
+    input_search: String,
+    target_search: String,
     notifications: Vec<(String, bool, Instant)>,
 }
 
@@ -23,6 +26,8 @@ impl App {
             output: String::new(),
             input_language: config.app_languages.input_language,
             target_language: config.app_languages.target_language,
+            input_search: String::new(),
+            target_search: String::new(),
             notifications: Vec::new(),
         }
     }
@@ -84,31 +89,58 @@ impl eframe::App for App {
             .exact_size(450.0)
             .show_separator_line(false)
             .resizable(false)
-            .frame(egui::Frame::default())
+            .frame(egui::Frame::new().inner_margin(8))
             .show(ui, |ui| {
+                // Click anywhere on the panel to focus the input text edit. Created
+                // first so it sits under the menu/text edit and only catches clicks
+                // on empty space (egui hit-test ties go to the topmost widget).
+                let panel_bg = ui.interact(
+                    ui.max_rect(),
+                    ui.id().with("input_panel_bg"),
+                    egui::Sense::click(),
+                );
+                let mut input_edit_id = egui::Id::NULL;
                 ui.vertical_centered(|ui| {
                     language_menu(
                         ui,
                         &format!("Input ({})", self.input_language.as_str()),
                         &mut self.input_language,
                         true,
+                        &mut self.input_search,
                     );
                 });
                 ui.vertical_centered_justified(|ui| {
-                    let response = ui.add(
-                        egui::TextEdit::multiline(&mut self.input)
-                            .hint_text("Input")
-                            .desired_rows(16),
-                    );
-                    response.changed().then(|| self.output = self.input.clone());
-                })
+                    let frame = egui::Frame::new()
+                        .fill(ui.visuals().text_edit_bg_color())
+                        .corner_radius(ui.visuals().widgets.inactive.corner_radius)
+                        .stroke(ui.visuals().widgets.noninteractive.bg_stroke)
+                        .inner_margin(egui::Margin::symmetric(4, 2));
+                    frame.show(ui, |ui| {
+                        egui::ScrollArea::vertical()
+                            .stick_to_bottom(true)
+                            .auto_shrink([false, false])
+                            .show(ui, |ui| {
+                                let response = ui.add(
+                                    egui::TextEdit::multiline(&mut self.input)
+                                        .hint_text("Input")
+                                        .desired_width(f32::INFINITY)
+                                        .frame(egui::Frame::NONE),
+                                );
+                                input_edit_id = response.id;
+                                response.changed().then(|| self.output = self.input.clone());
+                            });
+                    });
+                });
+                if panel_bg.clicked() {
+                    ui.memory_mut(|mem| mem.request_focus(input_edit_id));
+                }
             });
 
         egui::Panel::right("right_panel")
             .exact_size(450.0)
             .show_separator_line(false)
             .resizable(false)
-            .frame(egui::Frame::default())
+            .frame(egui::Frame::new().inner_margin(8))
             .show(ui, |ui| {
                 ui.vertical_centered(|ui| {
                     language_menu(
@@ -116,15 +148,31 @@ impl eframe::App for App {
                         &format!("Output ({})", self.target_language.as_str()),
                         &mut self.target_language,
                         false,
+                        &mut self.target_search,
                     );
-                    // `&mut &str` makes the TextEdit read-only but still selectable
-                    // (TextBuffer for &str is immutable)
-                    let mut output: &str = &self.output;
-                    ui.add(
-                        egui::TextEdit::multiline(&mut output)
-                            .hint_text("Output")
-                            .desired_rows(16),
-                    );
+                });
+                // `&mut &str` makes the TextEdit read-only but still selectable
+                // (TextBuffer for &str is immutable).
+                ui.vertical_centered_justified(|ui| {
+                    let frame = egui::Frame::new()
+                        .fill(ui.visuals().text_edit_bg_color())
+                        .corner_radius(ui.visuals().widgets.inactive.corner_radius)
+                        .stroke(ui.visuals().widgets.noninteractive.bg_stroke)
+                        .inner_margin(egui::Margin::symmetric(4, 2));
+                    frame.show(ui, |ui| {
+                        egui::ScrollArea::vertical()
+                            .stick_to_bottom(true)
+                            .auto_shrink([false, false])
+                            .show(ui, |ui| {
+                                let mut output: &str = &self.output;
+                                ui.add(
+                                    egui::TextEdit::multiline(&mut output)
+                                        .hint_text("Output")
+                                        .desired_width(f32::INFINITY)
+                                        .frame(egui::Frame::NONE),
+                                );
+                            });
+                    });
                 });
             });
 
@@ -138,7 +186,7 @@ impl eframe::App for App {
                     )
                     .on_disabled_hover_text("Set the input language to swap")
                     .clicked()
-                    .then(|| swap(&mut self.input_language, &mut self.target_language));
+                    .then(|| std::mem::swap(&mut self.input_language, &mut self.target_language));
 
                     ui.vertical_centered_justified(|ui| {
                         if ui.small_button("Test").clicked() {
@@ -150,15 +198,60 @@ impl eframe::App for App {
     }
 }
 
-fn language_menu(ui: &mut egui::Ui, label: &str, current: &mut Language, include_auto: bool) {
-    ui.menu_button(label, |ui| {
-        egui::ScrollArea::both().max_height(300.0).show(ui, |ui| {
-            for lang in Language::ALL {
-                if !include_auto && *lang == Language::Auto {
-                    continue;
+fn matches_search(lang: &Language, query: &str) -> bool {
+    let query = query.trim().to_lowercase();
+    query.is_empty()
+        || lang.as_str().to_lowercase().contains(&query)
+        || lang.code().contains(&query)
+}
+
+fn language_menu(
+    ui: &mut egui::Ui,
+    label: &str,
+    current: &mut Language,
+    include_auto: bool,
+    search: &mut String,
+) {
+    let response = ui.button(label);
+    let popup = egui::Popup::menu(&response)
+        .align(egui::RectAlign::BOTTOM)
+        .close_behavior(PopupCloseBehavior::CloseOnClickOutside);
+    // The popup area's response exists while the menu is open; its absence last
+    // frame means the menu was just opened — focus the search box so typing
+    // works immediately, without clicking it first.
+    let just_opened = ui.ctx().read_response(popup.get_id()).is_none();
+    popup.show(|ui| {
+        ui.set_min_width(220.0);
+        let search_response = ui.add(
+            egui::TextEdit::singleline(search)
+                .hint_text("Search")
+                .desired_width(220.0),
+        );
+        if just_opened {
+            search.replace_with("");
+            search_response.request_focus();
+        }
+        ui.separator();
+        egui::ScrollArea::both()
+            .min_scrolled_height(300.0)
+            .max_height(300.0)
+            .min_scrolled_width(220.0)
+            .show(ui, |ui| {
+                let mut shown = 0;
+                for lang in Language::ALL {
+                    if !include_auto && *lang == Language::Auto {
+                        continue;
+                    }
+                    if !matches_search(lang, search) {
+                        continue;
+                    }
+                    shown += 1;
+                    let response = ui.selectable_value(current, *lang, lang.as_str());
+                    response.changed().then(|| ui.close());
                 }
-                ui.selectable_value(current, *lang, lang.as_str());
-            }
-        });
+                if shown == 0 {
+                    ui.weak("No matches");
+                }
+            });
     });
 }

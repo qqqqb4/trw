@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum Language {
     #[default]
@@ -116,6 +116,63 @@ impl Language {
         Language::UR,
         Language::VI,
     ];
+
+    pub fn code(&self) -> &'static str {
+        match self {
+            Language::Auto => "auto",
+            Language::EN => "en",
+            Language::SQ => "sq",
+            Language::AR => "ar",
+            Language::AZ => "az",
+            Language::EU => "eu",
+            Language::BN => "bn",
+            Language::BG => "bg",
+            Language::CA => "ca",
+            Language::ZhHans => "zh-hans",
+            Language::ZhHant => "zh-hant",
+            Language::CS => "cs",
+            Language::DA => "da",
+            Language::NL => "nl",
+            Language::EO => "eo",
+            Language::ET => "et",
+            Language::FI => "fi",
+            Language::FR => "fr",
+            Language::GL => "gl",
+            Language::DE => "de",
+            Language::EL => "el",
+            Language::HE => "he",
+            Language::HI => "hi",
+            Language::HU => "hu",
+            Language::ID => "id",
+            Language::GA => "ga",
+            Language::IT => "it",
+            Language::JA => "ja",
+            Language::KO => "ko",
+            Language::KY => "ky",
+            Language::LV => "lv",
+            Language::LT => "lt",
+            Language::MS => "ms",
+            Language::NB => "nb",
+            Language::FA => "fa",
+            Language::PL => "pl",
+            Language::PT => "pt",
+            Language::PtBR => "pt-br",
+            Language::RO => "ro",
+            Language::RU => "ru",
+            Language::SR => "sr",
+            Language::SK => "sk",
+            Language::SL => "sl",
+            Language::ES => "es",
+            Language::SW => "sw",
+            Language::SV => "sv",
+            Language::TL => "tl",
+            Language::TH => "th",
+            Language::TR => "tr",
+            Language::UK => "uk",
+            Language::UR => "ur",
+            Language::VI => "vi",
+        }
+    }
 
     pub fn as_str(&self) -> &'static str {
         match self {

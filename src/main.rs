@@ -17,6 +17,7 @@ fn main() -> eframe::Result {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1500.0, 400.0])
             .with_decorations(false)
+            .with_transparent(true)
             .with_always_on_top()
             .with_resizable(false),
         ..Default::default()
