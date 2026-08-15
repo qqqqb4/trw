@@ -11,7 +11,7 @@ use ui::App;
 const APP_NAME: &str = "TRW";
 
 fn main() -> eframe::Result {
-    let config = load_config();
+    let (config, errors) = load_config();
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -28,7 +28,7 @@ fn main() -> eframe::Result {
         options,
         Box::new(|cc| {
             cc.egui_ctx.set_pixels_per_point(1.5);
-            Ok(Box::new(App::new(config)))
+            Ok(Box::new(App::new(config, errors)))
         }),
     )
 }

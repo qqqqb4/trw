@@ -5,7 +5,7 @@ use std::path;
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 
-use crate::api::configs::*;
+use crate::api::api_configs::*;
 use crate::language::Language;
 
 fn default_output_language() -> Language {
@@ -57,7 +57,7 @@ impl Default for AppConfig {
     }
 }
 
-fn validate_config_location() -> Result<path::PathBuf, io::Error> {
+fn validate_config_location(errors: &mut Vec<String>) -> Result<path::PathBuf, io::Error> {
     let path = ProjectDirs::from("", "", "trw")
         .unwrap() // maybe custom paths TODO???
         .config_dir()
@@ -69,34 +69,36 @@ fn validate_config_location() -> Result<path::PathBuf, io::Error> {
     if !config_path.exists() {
         fs::File::create_new(&config_path)?;
         fs::write(&config_path, "")?;
+        let error_message = format!(
+            "Error: There was no config file, created one at {}",
+            config_path.display()
+        );
+        errors.push(error_message.clone());
 
-        return Err(io::Error::new(
-            io::ErrorKind::NotFound,
-            format!(
-                "Error: There was no config file, created one at {}",
-                config_path.display()
-            ),
-        ));
+        return Err(io::Error::new(io::ErrorKind::NotFound, error_message));
     }
 
     Ok(config_path)
 }
 
-fn validate_config(config_path: path::PathBuf) -> AppConfig {
+fn validate_config(config_path: path::PathBuf, errors: &mut Vec<String>) -> AppConfig {
     let config_string = fs::read_to_string(config_path).unwrap_or_else(|e| {
         println!("{}", e);
+        errors.push(e.to_string());
         String::new()
     });
     toml::from_str(config_string.as_str()).unwrap_or_else(|e| {
         println!("{}", e);
+        errors.push(e.to_string());
         AppConfig::default()
     })
 }
 
-pub fn load_config() -> AppConfig {
-    match validate_config_location() {
-        Ok(res) => return validate_config(res),
+pub fn load_config() -> (AppConfig, Vec<String>) {
+    let mut errors: Vec<String> = Vec::new();
+    match validate_config_location(&mut errors) {
+        Ok(res) => return (validate_config(res, &mut errors), errors),
         Err(e) => println!("{}", e),
     }
-    AppConfig::default()
+    (AppConfig::default(), errors)
 }

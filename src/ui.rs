@@ -20,7 +20,11 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(config: AppConfig) -> Self {
+    pub fn new(config: AppConfig, config_errors: Vec<String>) -> Self {
+        let mut errors: Vec<(String, bool, Instant)> = Vec::new();
+        for i in config_errors {
+            errors.push((i, true, Instant::now()));
+        }
         Self {
             input: String::new(),
             output: String::new(),
@@ -28,14 +32,14 @@ impl App {
             target_language: config.app_languages.target_language,
             input_search: String::new(),
             target_search: String::new(),
-            notifications: Vec::new(),
+            notifications: errors,
         }
     }
 
-    pub fn notify(&mut self, message: impl Into<String>, is_error: bool) {
-        self.notifications
-            .push((message.into(), is_error, Instant::now()));
-    }
+    // pub fn test_notify(&mut self, message: impl Into<String>, is_error: bool) {
+    //     self.notifications
+    //         .push((message.into(), is_error, Instant::now()));
+    // }
 
     fn expire_notifications(&mut self, ctx: &egui::Context) {
         let mut next_repaint: Option<Duration> = None;
@@ -188,11 +192,11 @@ impl eframe::App for App {
                     .clicked()
                     .then(|| std::mem::swap(&mut self.input_language, &mut self.target_language));
 
-                    ui.vertical_centered_justified(|ui| {
-                        if ui.small_button("Test").clicked() {
-                            self.notify("Test error notification", true); // test trigger
-                        }
-                    });
+                    // ui.vertical_centered_justified(|ui| {
+                    //     if ui.small_button("Test").clicked() {
+                    //         self.test_notify("Test error notification", true); // test trigger
+                    //     }
+                    // });
                 });
             });
     }
