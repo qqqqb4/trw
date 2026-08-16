@@ -9,6 +9,13 @@ use crate::language::Language;
 
 const NOTIFY_TTL: Duration = Duration::from_secs(6);
 
+struct Notification {
+    message: String,
+    is_error: bool,
+    is_config_error: bool,
+    instant: Instant,
+}
+
 pub struct App {
     input: String,
     output: String,
@@ -16,15 +23,11 @@ pub struct App {
     target_language: Language,
     input_search: String,
     target_search: String,
-    notifications: Vec<(String, bool, Instant)>,
+    notifications: Vec<Notification>,
 }
 
 impl App {
     pub fn new(config: AppConfig, config_errors: Vec<String>) -> Self {
-        let mut errors: Vec<(String, bool, Instant)> = Vec::new();
-        for i in config_errors {
-            errors.push((i, true, Instant::now()));
-        }
         Self {
             input: String::new(),
             output: String::new(),
@@ -32,27 +35,43 @@ impl App {
             target_language: config.app_languages.target_language,
             input_search: String::new(),
             target_search: String::new(),
-            notifications: errors,
+            notifications: config_errors
+                .into_iter()
+                .map(|i| Notification {
+                    message: i,
+                    is_error: true,
+                    is_config_error: true,
+                    instant: Instant::now(),
+                })
+                .collect(),
         }
     }
 
-    // pub fn test_notify(&mut self, message: impl Into<String>, is_error: bool) {
-    //     self.notifications
-    //         .push((message.into(), is_error, Instant::now()));
-    // }
+    pub fn test_notify(&mut self, message: impl Into<String>, _is_error: bool) {
+        self.notifications.push(Notification {
+            message: message.into(),
+            is_error: _is_error,
+            is_config_error: false,
+            instant: Instant::now(),
+        });
+    }
 
     fn expire_notifications(&mut self, ctx: &egui::Context) {
         let mut next_repaint: Option<Duration> = None;
-        self.notifications.retain(|(_, _, shown_at)| {
-            let remaining = NOTIFY_TTL.saturating_sub(shown_at.elapsed());
-            if remaining.is_zero() {
-                return false;
+        self.notifications.retain(|notification| {
+            if !notification.is_config_error {
+                let remaining = NOTIFY_TTL.saturating_sub(notification.instant.elapsed());
+                if remaining.is_zero() {
+                    return false;
+                }
+                next_repaint = Some(match next_repaint {
+                    Some(r) => r.min(remaining),
+                    None => remaining,
+                });
+                true
+            } else {
+                true
             }
-            next_repaint = Some(match next_repaint {
-                Some(r) => r.min(remaining),
-                None => remaining,
-            });
-            true
         });
         if let Some(remaining) = next_repaint {
             ctx.request_repaint_after(remaining);
@@ -71,13 +90,13 @@ impl App {
             .frame(egui::Frame::popup(&ctx.global_style()))
             .show(ctx, |ui| {
                 ui.vertical(|ui| {
-                    for (message, is_error, _) in &self.notifications {
-                        let color = if *is_error {
+                    for i in &self.notifications {
+                        let color = if i.is_error {
                             ui.visuals().error_fg_color
                         } else {
                             ui.visuals().strong_text_color()
                         };
-                        ui.label(egui::RichText::new(message).color(color));
+                        ui.label(egui::RichText::new(&i.message).color(color));
                     }
                 });
             });
@@ -192,11 +211,11 @@ impl eframe::App for App {
                     .clicked()
                     .then(|| std::mem::swap(&mut self.input_language, &mut self.target_language));
 
-                    // ui.vertical_centered_justified(|ui| {
-                    //     if ui.small_button("Test").clicked() {
-                    //         self.test_notify("Test error notification", true); // test trigger
-                    //     }
-                    // });
+                    ui.vertical_centered_justified(|ui| {
+                        if ui.small_button("Test").clicked() {
+                            self.test_notify("Test error notification", true); // test trigger
+                        }
+                    })
                 });
             });
     }
