@@ -1,21 +1,22 @@
 use std::fs;
+use std::fs::File;
 use std::io;
 use std::path;
 
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 
-use crate::api::api_configs::*;
 use crate::language::Language;
+use crate::providers::{ProviderLibretranslate, ProviderOpencode};
 
 // Config struct just for parsing
 #[derive(Serialize, Deserialize, Default)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
-    #[serde(rename = "app", default)]
+    #[serde(rename = "App", default)]
     pub app_config: AppConfig,
 
-    #[serde(rename = "provider", default)]
+    #[serde(rename = "Provider")]
     pub translate_provider: ProviderConfig,
 }
 
@@ -31,7 +32,7 @@ fn default_output_language() -> Language {
     Language::EN
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AppLanguages {
     #[serde(default)]
@@ -41,18 +42,27 @@ pub struct AppLanguages {
     pub target_language: Language,
 }
 
+impl Default for AppLanguages {
+    fn default() -> Self {
+        Self {
+            input_language: Language::default(),
+            target_language: Language::EN,
+        }
+    }
+}
+
 // Provider configuration
 #[derive(Serialize, Deserialize, Default)]
-#[serde(tag = "provider", deny_unknown_fields)]
+#[serde(tag = "provider_name", deny_unknown_fields)]
 pub enum ProviderConfig {
     #[default]
     None,
 
     #[serde(rename = "opencode")]
-    Opencode(OpencodeConfig),
+    Opencode(ProviderOpencode),
 
     #[serde(rename = "libretranslate")]
-    Libretranslate(LibretranslateConfig),
+    Libretranslate(ProviderLibretranslate),
 }
 
 fn validate_config_location(errors: &mut Vec<String>) -> Result<path::PathBuf, io::Error> {
@@ -65,7 +75,7 @@ fn validate_config_location(errors: &mut Vec<String>) -> Result<path::PathBuf, i
 
     let config_path = path.join("config.toml");
     if !config_path.exists() {
-        fs::File::create_new(&config_path)?;
+        File::create_new(&config_path)?;
 
         fs::write(&config_path, "")?;
 
@@ -105,7 +115,10 @@ pub fn load_config() -> (AppConfig, ProviderConfig, Vec<String>) {
             return (config.app_config, config.translate_provider, errors);
         }
 
-        Err(e) => println!("{}", e),
+        Err(e) => {
+            println!("{}", e);
+            errors.push(e.to_string());
+        }
     }
 
     (AppConfig::default(), ProviderConfig::default(), errors)

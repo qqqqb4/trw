@@ -1,21 +1,24 @@
-use eframe::*;
+use std::sync::mpsc;
+use std::sync::mpsc::{Receiver, Sender};
 
-mod api;
+use eframe;
+use eframe::NativeOptions;
+use eframe::egui::ViewportBuilder;
+
 mod config;
 mod language;
+mod providers;
 mod ui;
 
-use api::*;
-use config::*;
 use ui::App;
 
 const APP_NAME: &str = "TRW";
 
 fn main() -> eframe::Result {
-    let (app_config, _provider_config, config_errors) = load_config();
+    let (app_config, _provider_config, config_errors) = config::load_config();
 
     // let provider: Option<Box<dyn Translator>> = match config.translate_provider {
-    //     config::Providers::Libretranslate(i) => {
+    // config::Providers::Libretranslate(i) => {
     //         Some(Box::new(api::libretranslate::LibretranslateClient {
     //             config: i,
     //         }))
@@ -26,8 +29,14 @@ fn main() -> eframe::Result {
     //     config::Providers::None => None,
     // };
 
-    let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
+    let (ui_tx, ui_rx): (Sender<i32>, Receiver<i32>) = mpsc::channel();
+
+    let (network_tx, network_rx): (Sender<i32>, Receiver<i32>) = mpsc::channel();
+
+    let network_thread = std::thread::spawn(move || {});
+
+    let options = NativeOptions {
+        viewport: ViewportBuilder::default()
             .with_inner_size([1500.0, 400.0])
             // .with_decorations(false)
             // .with_transparent(true)

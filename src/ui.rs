@@ -1,5 +1,6 @@
+use eframe::Frame;
+use eframe::egui;
 use eframe::egui::TextBuffer;
-use eframe::*;
 use egui::PopupCloseBehavior;
 use std::time::{Duration, Instant};
 
