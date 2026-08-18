@@ -1,8 +1,7 @@
-use std::time::{Duration, Instant};
-
 use eframe::egui::TextBuffer;
 use eframe::*;
 use egui::PopupCloseBehavior;
+use std::time::{Duration, Instant};
 
 use crate::config::AppConfig;
 use crate::language::Language;
@@ -64,15 +63,18 @@ impl App {
                 if remaining.is_zero() {
                     return false;
                 }
+
                 next_repaint = Some(match next_repaint {
                     Some(r) => r.min(remaining),
                     None => remaining,
                 });
+
                 true
             } else {
                 true
             }
         });
+
         if let Some(remaining) = next_repaint {
             ctx.request_repaint_after(remaining);
         }
@@ -82,6 +84,7 @@ impl App {
         if self.notifications.is_empty() {
             return;
         }
+
         egui::Window::new("notifications")
             .title_bar(false)
             .collapsible(false)
@@ -96,6 +99,7 @@ impl App {
                         } else {
                             ui.visuals().strong_text_color()
                         };
+
                         ui.label(egui::RichText::new(&i.message).color(color));
                     }
                 });
@@ -122,7 +126,9 @@ impl eframe::App for App {
                     ui.id().with("input_panel_bg"),
                     egui::Sense::click(),
                 );
+
                 let mut input_edit_id = egui::Id::NULL;
+
                 ui.vertical_centered(|ui| {
                     language_menu(
                         ui,
@@ -149,7 +155,9 @@ impl eframe::App for App {
                                         .desired_width(f32::INFINITY)
                                         .frame(egui::Frame::NONE),
                                 );
+
                                 input_edit_id = response.id;
+
                                 response.changed().then(|| self.output = self.input.clone());
                             });
                     });
@@ -236,42 +244,51 @@ fn language_menu(
     search: &mut String,
 ) {
     let response = ui.button(label);
+
     let popup = egui::Popup::menu(&response)
         .align(egui::RectAlign::BOTTOM)
         .close_behavior(PopupCloseBehavior::CloseOnClickOutside);
-    // The popup area's response exists while the menu is open; its absence last
-    // frame means the menu was just opened — focus the search box so typing
-    // works immediately, without clicking it first.
+
     let just_opened = ui.ctx().read_response(popup.get_id()).is_none();
+
     popup.show(|ui| {
         ui.set_min_width(220.0);
+
         let search_response = ui.add(
             egui::TextEdit::singleline(search)
                 .hint_text("Search")
                 .desired_width(220.0),
         );
+
         if just_opened {
             search.replace_with("");
             search_response.request_focus();
         }
+
         ui.separator();
+
         egui::ScrollArea::both()
             .min_scrolled_height(300.0)
             .max_height(300.0)
             .min_scrolled_width(220.0)
             .show(ui, |ui| {
                 let mut shown = 0;
+
                 for lang in Language::ALL {
                     if !include_auto && *lang == Language::Auto {
                         continue;
                     }
+
                     if !matches_search(lang, search) {
                         continue;
                     }
+
                     shown += 1;
+
                     let response = ui.selectable_value(current, *lang, lang.as_str());
                     response.changed().then(|| ui.close());
                 }
+
                 if shown == 0 {
                     ui.weak("No matches");
                 }

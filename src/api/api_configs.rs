@@ -10,4 +10,6 @@ pub struct OpencodeConfig {
 #[allow(dead_code)]
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct LibretranslateConfig {} // TODO
+pub struct LibretranslateConfig {
+    pub url: String,
+}

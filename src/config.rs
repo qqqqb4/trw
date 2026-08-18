@@ -8,53 +8,51 @@ use serde::{Deserialize, Serialize};
 use crate::api::api_configs::*;
 use crate::language::Language;
 
+// Config struct just for parsing
+#[derive(Serialize, Deserialize, Default)]
+#[serde(deny_unknown_fields)]
+pub struct Config {
+    #[serde(rename = "app", default)]
+    pub app_config: AppConfig,
+
+    #[serde(rename = "provider", default)]
+    pub translate_provider: ProviderConfig,
+}
+
+// Actual app config struct
+#[derive(Serialize, Deserialize, Default)]
+#[serde(deny_unknown_fields)]
+pub struct AppConfig {
+    #[serde(rename = "languages", default)]
+    pub app_languages: AppLanguages,
+}
+
 fn default_output_language() -> Language {
     Language::EN
 }
 
-#[derive(Serialize, Deserialize)]
-#[serde(tag = "provider", deny_unknown_fields)]
-pub enum Providers {
-    None,
-    #[serde(rename = "opencode")]
-    Opencode(OpencodeConfig),
-    #[serde(rename = "libretranslate")]
-    Libretranslate(LibretranslateConfig),
-}
-
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 #[serde(deny_unknown_fields)]
 pub struct AppLanguages {
     #[serde(default)]
     pub input_language: Language,
+
     #[serde(default = "default_output_language")]
     pub target_language: Language,
 }
 
-impl Default for AppLanguages {
-    fn default() -> Self {
-        Self {
-            input_language: Language::Auto,
-            target_language: Language::EN,
-        }
-    }
-}
+// Provider configuration
+#[derive(Serialize, Deserialize, Default)]
+#[serde(tag = "provider", deny_unknown_fields)]
+pub enum ProviderConfig {
+    #[default]
+    None,
 
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct AppConfig {
-    pub translate_provider: Providers,
-    #[serde(rename = "app", default)]
-    pub app_languages: AppLanguages,
-}
+    #[serde(rename = "opencode")]
+    Opencode(OpencodeConfig),
 
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            translate_provider: Providers::None,
-            app_languages: AppLanguages::default(),
-        }
-    }
+    #[serde(rename = "libretranslate")]
+    Libretranslate(LibretranslateConfig),
 }
 
 fn validate_config_location(errors: &mut Vec<String>) -> Result<path::PathBuf, io::Error> {
@@ -68,11 +66,14 @@ fn validate_config_location(errors: &mut Vec<String>) -> Result<path::PathBuf, i
     let config_path = path.join("config.toml");
     if !config_path.exists() {
         fs::File::create_new(&config_path)?;
+
         fs::write(&config_path, "")?;
+
         let error_message = format!(
             "Error: There was no config file, created one at {}",
             config_path.display()
         );
+
         errors.push(error_message.clone());
 
         return Err(io::Error::new(io::ErrorKind::NotFound, error_message));
@@ -81,24 +82,31 @@ fn validate_config_location(errors: &mut Vec<String>) -> Result<path::PathBuf, i
     Ok(config_path)
 }
 
-fn validate_config(config_path: path::PathBuf, errors: &mut Vec<String>) -> AppConfig {
+fn validate_config(config_path: path::PathBuf, errors: &mut Vec<String>) -> Config {
     let config_string = fs::read_to_string(config_path).unwrap_or_else(|e| {
         println!("{}", e);
         errors.push(e.to_string());
         String::new()
     });
+
     toml::from_str(config_string.as_str()).unwrap_or_else(|e| {
         println!("{}", e);
         errors.push(e.to_string());
-        AppConfig::default()
+        Config::default()
     })
 }
 
-pub fn load_config() -> (AppConfig, Vec<String>) {
+pub fn load_config() -> (AppConfig, ProviderConfig, Vec<String>) {
     let mut errors: Vec<String> = Vec::new();
+
     match validate_config_location(&mut errors) {
-        Ok(res) => return (validate_config(res, &mut errors), errors),
+        Ok(res) => {
+            let config = validate_config(res, &mut errors);
+            return (config.app_config, config.translate_provider, errors);
+        }
+
         Err(e) => println!("{}", e),
     }
-    (AppConfig::default(), errors)
+
+    (AppConfig::default(), ProviderConfig::default(), errors)
 }
