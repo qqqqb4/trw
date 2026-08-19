@@ -1,5 +1,5 @@
-// use crate::api::{ProviderOpencode, Translator};
+use crate::providers::{ProviderOpencode, Translator};
 
-// impl Translator for ProviderOpencode {
-//     fn translate() {}
-// }
+impl Translator for ProviderOpencode {
+    fn translate(&self) {}
+}

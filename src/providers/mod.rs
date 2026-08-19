@@ -4,14 +4,14 @@ pub mod opencode;
 use serde::{Deserialize, Serialize};
 
 pub trait Translator {
-    fn translate();
+    fn translate(&self);
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ProviderOpencode {
-    api: String,
-    model: String,
+    pub api: String,
+    pub model: String,
 }
 
 #[derive(Serialize, Deserialize)]

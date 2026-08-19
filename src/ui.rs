@@ -4,8 +4,11 @@ use eframe::egui::TextBuffer;
 use egui::PopupCloseBehavior;
 use std::time::{Duration, Instant};
 
+use std::sync::mpsc::{Receiver, Sender};
+
 use crate::config::AppConfig;
 use crate::language::Language;
+use crate::network::Message;
 
 const NOTIFY_TTL: Duration = Duration::from_secs(6);
 
@@ -24,10 +27,17 @@ pub struct App {
     input_search: String,
     target_search: String,
     notifications: Vec<Notification>,
+    message_rx: Receiver<Message>,
+    message_tx: Sender<Message>,
 }
 
 impl App {
-    pub fn new(config: AppConfig, config_errors: Vec<String>) -> Self {
+    pub fn new(
+        config: AppConfig,
+        config_errors: Vec<String>,
+        rx: Receiver<Message>,
+        tx: Sender<Message>,
+    ) -> Self {
         Self {
             input: String::new(),
             output: String::new(),
@@ -44,17 +54,19 @@ impl App {
                     instant: Instant::now(),
                 })
                 .collect(),
+            message_rx: rx,
+            message_tx: tx,
         }
     }
 
-    pub fn test_notify(&mut self, message: impl Into<String>, _is_error: bool) {
-        self.notifications.push(Notification {
-            message: message.into(),
-            is_error: _is_error,
-            is_config_error: false,
-            instant: Instant::now(),
-        });
-    }
+    // pub fn test_notify(&mut self, message: impl Into<String>, _is_error: bool) {
+    //     self.notifications.push(Notification {
+    //         message: message.into(),
+    //         is_error: _is_error,
+    //         is_config_error: false,
+    //         instant: Instant::now(),
+    //     });
+    // }
 
     fn expire_notifications(&mut self, ctx: &egui::Context) {
         let mut next_repaint: Option<Duration> = None;
@@ -220,13 +232,33 @@ impl eframe::App for App {
                     .clicked()
                     .then(|| std::mem::swap(&mut self.input_language, &mut self.target_language));
 
+                    // ui.vertical_centered_justified(|ui| {
+                    //     if ui.small_button("Test").clicked() {
+                    //         self.test_notify("Test error notification", true); // test trigger
+                    //     }
+                    // })
                     ui.vertical_centered_justified(|ui| {
                         if ui.small_button("Test").clicked() {
-                            self.test_notify("Test error notification", true); // test trigger
+                            let _ = self.message_tx.send(Message {
+                                input_lang: "",
+                                output_lang: "",
+                                text: "MESSAGE FROM UI",
+                            });
                         }
                     })
                 });
             });
+    }
+    fn logic(&mut self, ctx: &egui::Context, frame: &mut Frame) {
+        match self.message_rx.try_recv() {
+            Ok(e) => self.notifications.push(Notification {
+                message: e.text.to_string(),
+                is_error: false,
+                is_config_error: false,
+                instant: Instant::now(),
+            }),
+            Err(_) => {}
+        }
     }
 }
 

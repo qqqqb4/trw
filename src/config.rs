@@ -25,7 +25,7 @@ pub struct Config {
 #[serde(deny_unknown_fields)]
 pub struct AppConfig {
     #[serde(rename = "languages", default)]
-    pub app_languages: AppLanguages,
+    pub app_languages: LanguagesConfig,
 }
 
 fn default_output_language() -> Language {
@@ -34,7 +34,7 @@ fn default_output_language() -> Language {
 
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct AppLanguages {
+pub struct LanguagesConfig {
     #[serde(default)]
     pub input_language: Language,
 
@@ -42,7 +42,7 @@ pub struct AppLanguages {
     pub target_language: Language,
 }
 
-impl Default for AppLanguages {
+impl Default for LanguagesConfig {
     fn default() -> Self {
         Self {
             input_language: Language::default(),

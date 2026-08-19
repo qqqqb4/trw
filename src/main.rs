@@ -1,39 +1,48 @@
-use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, Sender};
-
 use eframe;
 use eframe::NativeOptions;
 use eframe::egui::ViewportBuilder;
 
 mod config;
 mod language;
+mod network;
 mod providers;
 mod ui;
+
+use network::Message;
+
+use std::sync::mpsc;
+use std::sync::mpsc::{Receiver, Sender};
 
 use ui::App;
 
 const APP_NAME: &str = "TRW";
 
 fn main() -> eframe::Result {
-    let (app_config, _provider_config, config_errors) = config::load_config();
+    let (app_config, provider_config, config_errors) = config::load_config();
 
-    // let provider: Option<Box<dyn Translator>> = match config.translate_provider {
-    // config::Providers::Libretranslate(i) => {
-    //         Some(Box::new(api::libretranslate::LibretranslateClient {
-    //             config: i,
-    //         }))
-    //     }
-    //     config::Providers::Opencode(i) => {
-    //         Some(Box::new(api::opencode::OpencodeClient { config: i }))
-    //     }
-    //     config::Providers::None => None,
-    // };
+    let provider = network::get_provider(provider_config);
 
-    let (ui_tx, ui_rx): (Sender<i32>, Receiver<i32>) = mpsc::channel();
+    let (network_tx, ui_rx): (Sender<Message>, Receiver<Message>) = mpsc::channel();
 
-    let (network_tx, network_rx): (Sender<i32>, Receiver<i32>) = mpsc::channel();
+    let (ui_tx, network_rx): (Sender<Message>, Receiver<Message>) = mpsc::channel();
 
-    let network_thread = std::thread::spawn(move || {});
+    let network_thread = std::thread::spawn(move || {
+        loop {
+            let request = match network_rx.recv() {
+                Ok(s) => s,
+                Err(_) => break,
+            };
+
+            let _ = network_tx.send(Message {
+                input_lang: "",
+                output_lang: "",
+                text: "MESSAGE FROM NETWORK",
+            });
+
+            println!("{}", request.text);
+        }
+        println!("Thread stopped");
+    });
 
     let options = NativeOptions {
         viewport: ViewportBuilder::default()
@@ -45,12 +54,17 @@ fn main() -> eframe::Result {
         ..Default::default()
     };
 
-    eframe::run_native(
+    let res = eframe::run_native(
         APP_NAME,
         options,
         Box::new(|cc| {
             cc.egui_ctx.set_pixels_per_point(1.5);
-            Ok(Box::new(App::new(app_config, config_errors))) // , translator
+            Ok(Box::new(App::new(app_config, config_errors, ui_rx, ui_tx)))
         }),
-    )
+    );
+
+    network_thread.join().unwrap();
+    println!("EXIT");
+
+    res
 }
