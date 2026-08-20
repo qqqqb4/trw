@@ -8,14 +8,14 @@ use std::sync::mpsc::{Receiver, Sender};
 
 use crate::config::AppConfig;
 use crate::language::Language;
-use crate::network::Message;
+use crate::network::{ErrorMessage, FromUIMessage, ToUIMessage};
 
 const NOTIFY_TTL: Duration = Duration::from_secs(6);
 
 struct Notification {
     message: String,
     is_error: bool,
-    is_config_error: bool,
+    is_critical_error: bool,
     instant: Instant,
 }
 
@@ -27,16 +27,18 @@ pub struct App {
     input_search: String,
     target_search: String,
     notifications: Vec<Notification>,
-    message_rx: Receiver<Message>,
-    message_tx: Sender<Message>,
+    message_tx: Sender<FromUIMessage>,
+    message_rx: Receiver<ToUIMessage>,
+    network_error_rx: Receiver<ErrorMessage>,
 }
 
 impl App {
     pub fn new(
         config: AppConfig,
         config_errors: Vec<String>,
-        rx: Receiver<Message>,
-        tx: Sender<Message>,
+        rx: Receiver<ToUIMessage>,
+        tx: Sender<FromUIMessage>,
+        error_rx: Receiver<ErrorMessage>,
     ) -> Self {
         Self {
             input: String::new(),
@@ -50,12 +52,13 @@ impl App {
                 .map(|i| Notification {
                     message: i,
                     is_error: true,
-                    is_config_error: true,
+                    is_critical_error: true,
                     instant: Instant::now(),
                 })
                 .collect(),
-            message_rx: rx,
             message_tx: tx,
+            message_rx: rx,
+            network_error_rx: error_rx,
         }
     }
 
@@ -71,7 +74,7 @@ impl App {
     fn expire_notifications(&mut self, ctx: &egui::Context) {
         let mut next_repaint: Option<Duration> = None;
         self.notifications.retain(|notification| {
-            if !notification.is_config_error {
+            if !notification.is_critical_error {
                 let remaining = NOTIFY_TTL.saturating_sub(notification.instant.elapsed());
                 if remaining.is_zero() {
                     return false;
@@ -239,7 +242,7 @@ impl eframe::App for App {
                     // })
                     ui.vertical_centered_justified(|ui| {
                         if ui.small_button("Test").clicked() {
-                            let _ = self.message_tx.send(Message {
+                            let _ = self.message_tx.send(FromUIMessage {
                                 input_lang: "",
                                 output_lang: "",
                                 text: "MESSAGE FROM UI",
@@ -249,12 +252,13 @@ impl eframe::App for App {
                 });
             });
     }
-    fn logic(&mut self, ctx: &egui::Context, frame: &mut Frame) {
+
+    fn logic(&mut self, _ctx: &egui::Context, _frame: &mut Frame) {
         match self.message_rx.try_recv() {
             Ok(e) => self.notifications.push(Notification {
                 message: e.text.to_string(),
                 is_error: false,
-                is_config_error: false,
+                is_critical_error: false,
                 instant: Instant::now(),
             }),
             Err(_) => {}

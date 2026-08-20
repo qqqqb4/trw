@@ -7,7 +7,7 @@ use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 
 use crate::language::Language;
-use crate::providers::{ProviderLibretranslate, ProviderOpencode};
+use crate::providers::ProviderLibretranslate;
 
 // Config struct just for parsing
 #[derive(Serialize, Deserialize, Default)]
@@ -57,9 +57,6 @@ impl Default for LanguagesConfig {
 pub enum ProviderConfig {
     #[default]
     None,
-
-    #[serde(rename = "opencode")]
-    Opencode(ProviderOpencode),
 
     #[serde(rename = "libretranslate")]
     Libretranslate(ProviderLibretranslate),

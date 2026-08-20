@@ -3,15 +3,11 @@ pub mod opencode;
 
 use serde::{Deserialize, Serialize};
 
+use crate::network::{FromUIMessage, ToUIMessage};
+
 pub trait Translator {
     fn translate(&self);
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ProviderOpencode {
-    pub api: String,
-    pub model: String,
+    fn test_connection(&self);
 }
 
 #[derive(Serialize, Deserialize)]
