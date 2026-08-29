@@ -4,14 +4,14 @@ use crate::config::ProviderConfig;
 use crate::providers::{ProviderLibretranslate, Translator};
 
 pub struct FromUIMessage {
-    pub input_lang: &'static str,
-    pub output_lang: &'static str,
-    pub text: &'static str,
+    pub input_lang: String,
+    pub target_lang: String,
+    pub text: String,
 }
 
 pub struct ToUIMessage {
-    pub input_lang: &'static str,
-    pub text: &'static str,
+    pub input_lang: String,
+    pub text: String,
 }
 
 pub struct ErrorMessage {
@@ -33,24 +33,29 @@ pub fn network_job(
 ) {
     let provider = get_provider(provider_config);
 
-    match provider {
-        Some(prov) => loop {
-            let request = match network_rx.recv() {
-                Ok(s) => s,
-                Err(_) => break,
+    if let Some(prov) = provider {
+        while let Ok(s) = network_rx.recv() {
+            let request = s;
+
+            let r = prov.translate(request);
+
+            match r {
+                Ok(response) => {
+                    let _ = network_tx.send(ToUIMessage {
+                        input_lang: response.input_lang,
+                        text: response.text,
+                    });
+                }
+                Err(e) => {
+                    let _ = network_error_tx.send(ErrorMessage {
+                        error: e.to_string(),
+                    });
+                }
             };
 
-            prov.translate();
-
-            println!("{}", request.text);
-
-            let _ = network_tx.send(ToUIMessage {
-                input_lang: "",
-                text: "MESSAGE FROM NETWORK",
-            });
-        },
-        None => {}
-    };
+            // println!("{}", request.text);
+        }
+    }
 
     println!("Thread stopped");
 }

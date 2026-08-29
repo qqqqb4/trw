@@ -62,20 +62,13 @@ impl App {
         }
     }
 
-    // pub fn test_notify(&mut self, message: impl Into<String>, _is_error: bool) {
-    //     self.notifications.push(Notification {
-    //         message: message.into(),
-    //         is_error: _is_error,
-    //         is_config_error: false,
-    //         instant: Instant::now(),
-    //     });
-    // }
-
     fn expire_notifications(&mut self, ctx: &egui::Context) {
         let mut next_repaint: Option<Duration> = None;
+
         self.notifications.retain(|notification| {
             if !notification.is_critical_error {
                 let remaining = NOTIFY_TTL.saturating_sub(notification.instant.elapsed());
+
                 if remaining.is_zero() {
                     return false;
                 }
@@ -128,8 +121,10 @@ impl eframe::App for App {
         self.expire_notifications(ui.ctx());
         self.show_notifications(ui.ctx());
 
+        let side_width = (ui.available_width() * 0.4).min(450.0);
+
         egui::Panel::left("left_panel")
-            .exact_size(450.0)
+            .exact_size(side_width)
             .show_separator_line(false)
             .resizable(false)
             .frame(egui::Frame::new().inner_margin(8))
@@ -160,6 +155,7 @@ impl eframe::App for App {
                         .corner_radius(ui.visuals().widgets.inactive.corner_radius)
                         .stroke(ui.visuals().widgets.noninteractive.bg_stroke)
                         .inner_margin(egui::Margin::symmetric(4, 2));
+
                     frame.show(ui, |ui| {
                         egui::ScrollArea::vertical()
                             .stick_to_bottom(true)
@@ -173,8 +169,6 @@ impl eframe::App for App {
                                 );
 
                                 input_edit_id = response.id;
-
-                                response.changed().then(|| self.output = self.input.clone());
                             });
                     });
                 });
@@ -184,7 +178,7 @@ impl eframe::App for App {
             });
 
         egui::Panel::right("right_panel")
-            .exact_size(450.0)
+            .exact_size(side_width)
             .show_separator_line(false)
             .resizable(false)
             .frame(egui::Frame::new().inner_margin(8))
@@ -198,6 +192,7 @@ impl eframe::App for App {
                         &mut self.target_search,
                     );
                 });
+
                 // `&mut &str` makes the TextEdit read-only but still selectable
                 // (TextBuffer for &str is immutable).
                 ui.vertical_centered_justified(|ui| {
@@ -233,19 +228,17 @@ impl eframe::App for App {
                     )
                     .on_disabled_hover_text("Set the input language to swap")
                     .clicked()
-                    .then(|| std::mem::swap(&mut self.input_language, &mut self.target_language));
+                    .then(|| {
+                        std::mem::swap(&mut self.input_language, &mut self.target_language);
+                        std::mem::swap(&mut self.input, &mut self.output);
+                    });
 
-                    // ui.vertical_centered_justified(|ui| {
-                    //     if ui.small_button("Test").clicked() {
-                    //         self.test_notify("Test error notification", true); // test trigger
-                    //     }
-                    // })
                     ui.vertical_centered_justified(|ui| {
                         if ui.small_button("Test").clicked() {
                             let _ = self.message_tx.send(FromUIMessage {
-                                input_lang: "",
-                                output_lang: "",
-                                text: "MESSAGE FROM UI",
+                                input_lang: self.input_language.code().to_string(),
+                                target_lang: self.target_language.code().to_string(),
+                                text: self.input.clone(),
                             });
                         }
                     })
@@ -254,20 +247,24 @@ impl eframe::App for App {
     }
 
     fn logic(&mut self, _ctx: &egui::Context, _frame: &mut Frame) {
-        match self.message_rx.try_recv() {
-            Ok(e) => self.notifications.push(Notification {
-                message: e.text.to_string(),
-                is_error: false,
+        if let Ok(e) = self.network_error_rx.try_recv() {
+            self.notifications.push(Notification {
+                message: e.error,
+                is_error: true,
                 is_critical_error: false,
                 instant: Instant::now(),
-            }),
-            Err(_) => {}
+            });
+        }
+
+        if let Ok(m) = self.message_rx.try_recv() {
+            self.output = m.text;
         }
     }
 }
 
 fn matches_search(lang: &Language, query: &str) -> bool {
     let query = query.trim().to_lowercase();
+
     query.is_empty()
         || lang.as_str().to_lowercase().contains(&query)
         || lang.code().contains(&query)

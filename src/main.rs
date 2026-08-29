@@ -1,18 +1,17 @@
-use eframe;
 use eframe::NativeOptions;
 use eframe::egui::ViewportBuilder;
 
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 
+mod app;
 mod config;
 mod language;
 mod network;
 mod providers;
-mod ui;
 
+use app::App;
 use network::{ErrorMessage, FromUIMessage, ToUIMessage};
-use ui::App;
 
 const APP_NAME: &str = "TRW";
 
@@ -32,9 +31,9 @@ fn main() -> eframe::Result {
 
     let options = NativeOptions {
         viewport: ViewportBuilder::default()
-            .with_inner_size([1500.0, 400.0])
-            .with_always_on_top()
-            .with_resizable(false),
+            .with_inner_size([1000.0, 400.0])
+            .with_min_inner_size([600.0, 300.0])
+            .with_always_on_top(),
         ..Default::default()
     };
 
@@ -53,7 +52,7 @@ fn main() -> eframe::Result {
         }),
     );
 
-    network_thread.join().unwrap();
+    network_thread.join().unwrap_or_default();
     println!("EXIT");
 
     res

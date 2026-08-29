@@ -1,16 +1,18 @@
+use crate::network::{FromUIMessage, ToUIMessage};
 use crate::providers::{ProviderLibretranslate, Translator};
-use ureq;
 
 impl Translator for ProviderLibretranslate {
-    fn translate(&self) {
-        println!("1");
-        let mut response = ureq::post("http://127.0.0.1:5000/translate")
-            .send_form([("q", "Hello"), ("source", "en"), ("target", "es")])
-            .unwrap();
-        println!("2");
+    fn translate(&self, request: FromUIMessage) -> Result<ToUIMessage, ureq::Error> {
+        let mut response =
+            ureq::post("http://".to_string() + &self.url + "/translate").send_form([
+                ("q", request.text),
+                ("source", request.input_lang),
+                ("target", request.target_lang),
+            ])?;
 
-        let body = response.body_mut().read_to_string().unwrap();
-        println!("{}", body);
+        Ok(ToUIMessage {
+            input_lang: "en".to_string(),
+            text: response.body_mut().read_to_string()?,
+        })
     }
-    fn test_connection(&self) {}
 }

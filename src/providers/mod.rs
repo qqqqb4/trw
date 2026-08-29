@@ -1,13 +1,11 @@
 pub mod libretranslate;
-pub mod opencode;
 
 use serde::{Deserialize, Serialize};
 
 use crate::network::{FromUIMessage, ToUIMessage};
 
 pub trait Translator {
-    fn translate(&self);
-    fn test_connection(&self);
+    fn translate(&self, request: FromUIMessage) -> Result<ToUIMessage, ureq::Error>;
 }
 
 #[derive(Serialize, Deserialize)]
