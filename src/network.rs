@@ -3,6 +3,9 @@ use std::sync::mpsc::{Receiver, Sender};
 use crate::config::ProviderConfig;
 use crate::providers::{ProviderLibretranslate, Translator};
 
+#[cfg(test)]
+mod tests;
+
 pub struct FromUIMessage {
     pub input_lang: String,
     pub target_lang: String,
@@ -52,8 +55,6 @@ pub fn network_job(
                     });
                 }
             };
-
-            // println!("{}", request.text);
         }
     }
 

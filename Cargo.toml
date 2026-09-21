@@ -6,6 +6,11 @@ edition = "2024"
 [dependencies]
 directories = "6.0.0"
 eframe = "0.35.0"
-serde = {version = "1.0.229", features = ["derive"]}
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
 toml = "1.1.4"
 ureq = "3.4.0"
+
+[dev-dependencies]
+form_urlencoded = "1.2.2"
+tempfile = "3.27.0"

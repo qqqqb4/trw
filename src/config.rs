@@ -9,6 +9,9 @@ use serde::{Deserialize, Serialize};
 use crate::language::Language;
 use crate::providers::ProviderLibretranslate;
 
+#[cfg(test)]
+mod tests;
+
 // Config struct just for parsing
 #[derive(Serialize, Deserialize, Default)]
 #[serde(deny_unknown_fields)]

@@ -1,5 +1,5 @@
-use eframe::NativeOptions;
 use eframe::egui::ViewportBuilder;
+use eframe::NativeOptions;
 
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
@@ -10,10 +10,11 @@ mod language;
 mod network;
 mod providers;
 
+#[cfg(test)]
+mod test_support;
+
 use app::App;
 use network::{ErrorMessage, FromUIMessage, ToUIMessage};
-
-const APP_NAME: &str = "TRW";
 
 fn main() -> eframe::Result {
     let (app_config, provider_config, errors) = config::load_config();
@@ -38,7 +39,7 @@ fn main() -> eframe::Result {
     };
 
     let res = eframe::run_native(
-        APP_NAME,
+        "TRW",
         options,
         Box::new(|cc| {
             cc.egui_ctx.set_pixels_per_point(1.5);
@@ -54,6 +55,5 @@ fn main() -> eframe::Result {
 
     network_thread.join().unwrap_or_default();
     println!("EXIT");
-
     res
 }

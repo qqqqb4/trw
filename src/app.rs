@@ -1,6 +1,6 @@
-use eframe::Frame;
 use eframe::egui;
 use eframe::egui::TextBuffer;
+use eframe::Frame;
 use egui::PopupCloseBehavior;
 use std::time::{Duration, Instant};
 
@@ -9,6 +9,9 @@ use std::sync::mpsc::{Receiver, Sender};
 use crate::config::AppConfig;
 use crate::language::Language;
 use crate::network::{ErrorMessage, FromUIMessage, ToUIMessage};
+
+#[cfg(test)]
+mod tests;
 
 const NOTIFY_TTL: Duration = Duration::from_secs(6);
 
