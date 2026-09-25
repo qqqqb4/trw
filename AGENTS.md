@@ -1,3 +1,8 @@
+# Overall Rules
+
+You are prohibited from making any changes unrelated to adding or editing unit testing.
+You are prohibited from writing commit messages or creating pull requests. 
+
 # Testing guidance
 
 Read [TESTING.md](TESTING.md) for the existing test suite, coverage, commands, and proxy configuration.
