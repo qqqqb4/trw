@@ -1,5 +1,5 @@
 use super::*;
-use crate::test_support::{translation_request, MockServer, TEST_TIMEOUT};
+use crate::test_support::{MockServer, TEST_TIMEOUT, translation_request};
 use std::sync::mpsc;
 use std::thread::{self, JoinHandle};
 

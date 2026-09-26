@@ -4,6 +4,7 @@ use crate::config::ProviderConfig;
 use crate::providers::{ProviderLibretranslate, Translator};
 
 #[cfg(test)]
+#[path = "../tests/network.rs"]
 mod tests;
 
 pub struct FromUIMessage {

@@ -1,5 +1,5 @@
-use eframe::egui::ViewportBuilder;
 use eframe::NativeOptions;
+use eframe::egui::ViewportBuilder;
 
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
@@ -11,6 +11,7 @@ mod network;
 mod providers;
 
 #[cfg(test)]
+#[path = "../tests/support.rs"]
 mod test_support;
 
 use app::App;

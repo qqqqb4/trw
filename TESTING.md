@@ -17,19 +17,22 @@ cargo clippy --locked --all-targets --all-features -- -D warnings
 
 Once dependencies have been downloaded, you can add `--offline` to the Cargo commands.
 
-## Coverage
+## Layout
 
-| Module | Checks |
-| --- | --- |
-| `src/config/tests.rs` | Defaults, partial settings, TOML round-trips, unknown fields, invalid types, missing and malformed files, invalid UTF-8, diagnostic messages |
-| `src/language/tests.rs` | Unique codes and names, values for basic and regional language variants, serialization of every entry in `Language::ALL`, rejection of unknown codes |
-| `src/app/tests.rs` | Initial state, search, applying results and errors, notification lifetime, preservation of critical errors |
-| `src/providers/libretranslate/tests.rs` | HTTP method and path, form-urlencoded fields, Unicode and special characters, `auto`, response parsing, HTTP 400/401/429/500/503 |
-| `src/network/tests.rs` | Provider selection, result ordering, error delivery, recovery after HTTP errors, channel shutdown |
+Tests live in `tests/`, outside `src/`. They are still unit tests of the binary: each parent module includes its file with `#[cfg(test)]` and `#[path]`. That keeps access to private items. `autotests = false` in `Cargo.toml` stops Cargo from compiling those files as separate integration-test crates.
+
+| File | Included from | Checks |
+| --- | --- | --- |
+| `tests/config.rs` | `src/config.rs` | Defaults, partial settings, TOML round-trips, unknown fields, invalid types, missing and malformed files, invalid UTF-8, diagnostic messages |
+| `tests/language.rs` | `src/language.rs` | Unique codes and names, values for basic and regional language variants, serialization of every entry in `Language::ALL`, rejection of unknown codes |
+| `tests/app.rs` | `src/app.rs` | Initial state, search, applying results and errors, notification lifetime, preservation of critical errors |
+| `tests/libretranslate.rs` | `src/providers/libretranslate.rs` | HTTP method and path, form-urlencoded fields, Unicode and special characters, `auto`, response parsing, HTTP 400/401/429/500/503 |
+| `tests/network.rs` | `src/network.rs` | Provider selection, result ordering, error delivery, recovery after HTTP errors, channel shutdown |
+| `tests/support.rs` | `src/main.rs` (`test_support`) | Shared loopback HTTP fixture; no assertions of its own |
 
 Configuration tests use `tempfile`: the real user configuration is neither read nor modified. UI state tests run without a window or GPU; notification timestamps are set using `Instant`, without waiting for the TTL to expire.
 
-HTTP tests share the fixture in `src/test_support.rs`: a local server on `127.0.0.1` with an OS-assigned available port. A real LibreTranslate server is not required. Waiting for requests, socket reads and writes, and waiting for worker responses are bounded by timeouts. Server threads are shut down and checked by the tests.
+HTTP tests share the fixture in `tests/support.rs`: a local server on `127.0.0.1` with an OS-assigned available port. A real LibreTranslate server is not required. Waiting for requests, socket reads and writes, and waiting for worker responses are bounded by timeouts. Server threads are shut down and checked by the tests.
 
 Since the production `ureq` client respects system proxy environment variables, exclude loopback addresses if a proxy is configured. For example, in a POSIX shell:
 

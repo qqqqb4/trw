@@ -10,6 +10,7 @@ use crate::language::Language;
 use crate::providers::ProviderLibretranslate;
 
 #[cfg(test)]
+#[path = "../tests/config.rs"]
 mod tests;
 
 // Config struct just for parsing

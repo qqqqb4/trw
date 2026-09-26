@@ -117,7 +117,6 @@ fn response_schema_rejects_missing_or_non_string_translation() {
 // These regression tests describe the desired behavior, not the current panic.
 // Remove each ignore when the corresponding provider defect is fixed.
 #[test]
-// #[ignore = "known bug: invalid JSON panics in translate instead of returning Err"]
 fn malformed_json_returns_error_without_panicking() {
     let server = MockServer::new([(200, "<html>upstream error</html>")]);
     let provider = ProviderLibretranslate {
@@ -128,7 +127,6 @@ fn malformed_json_returns_error_without_panicking() {
 }
 
 #[test]
-// #[ignore = "known bug: missing translatedText panics in translate instead of returning Err"]
 fn missing_translation_returns_error_without_panicking() {
     let server = MockServer::new([(200, r#"{"error":"model unavailable"}"#)]);
     let provider = ProviderLibretranslate {
@@ -139,7 +137,6 @@ fn missing_translation_returns_error_without_panicking() {
 }
 
 #[test]
-#[ignore = "known bug: response input_lang is hardcoded to en, detectedLanguage is ignored"]
 fn returns_detected_source_language() {
     let server = MockServer::new([(
         200,

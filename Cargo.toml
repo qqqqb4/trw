@@ -2,6 +2,8 @@
 name = "trw"
 version = "0.0.1"
 edition = "2024"
+# Files in tests/ are unit tests included with #[path], not integration-test crates.
+autotests = false
 
 [dependencies]
 directories = "6.0.0"

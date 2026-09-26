@@ -4,6 +4,7 @@ use crate::network::{FromUIMessage, ToUIMessage};
 use crate::providers::{ProviderLibretranslate, Translator};
 
 #[cfg(test)]
+#[path = "../../tests/libretranslate.rs"]
 mod tests;
 
 #[derive(Deserialize)]
@@ -14,7 +15,7 @@ struct ParsedResponse {
 
 impl Translator for ProviderLibretranslate {
     fn translate(&self, request: FromUIMessage) -> Result<ToUIMessage, ureq::Error> {
-        let response = ureq::post("http://".to_string() + &self.url + "/translate")
+        let response = ureq::post(self.url.to_string() + "/translate")
             .send_form([
                 ("q", request.text),
                 ("source", request.input_lang),
