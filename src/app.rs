@@ -37,6 +37,7 @@ pub struct App {
     message_rx: Receiver<ToUIMessage>,
     network_error_rx: Receiver<ErrorMessage>,
     last_update_time: Instant,
+    prev_input: String,
 }
 
 impl App {
@@ -67,6 +68,7 @@ impl App {
             message_rx: rx,
             network_error_rx: error_rx,
             last_update_time: Instant::now(),
+            prev_input: String::new(),
         }
     }
 
@@ -269,10 +271,19 @@ impl eframe::App for App {
         }
 
         if (Instant::now().duration_since(self.last_update_time) >= UPDATE_TTL)
-            && !self.input.is_empty()
+            && self.input != self.prev_input
         {
-            self.get_translation(ctx);
-            self.last_update_time = Instant::now()
+            if !self.input.is_empty() {
+                self.get_translation(ctx);
+
+                self.last_update_time = Instant::now();
+                self.prev_input = self.input.clone();
+
+                ctx.request_repaint();
+            } else {
+                self.output.clear();
+            }
+            return; // Is this needed? 
         }
 
         if let Ok(m) = self.message_rx.try_recv() {
