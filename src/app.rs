@@ -1,6 +1,6 @@
+use eframe::Frame;
 use eframe::egui;
 use eframe::egui::TextBuffer;
-use eframe::Frame;
 use egui::PopupCloseBehavior;
 use std::time::{Duration, Instant};
 
@@ -14,6 +14,8 @@ use crate::network::{ErrorMessage, FromUIMessage, ToUIMessage};
 mod tests;
 
 const NOTIFY_TTL: Duration = Duration::from_secs(6);
+
+const UPDATE_TTL: Duration = Duration::from_secs(1);
 
 struct Notification {
     message: String,
@@ -33,6 +35,7 @@ pub struct App {
     message_tx: Sender<FromUIMessage>,
     message_rx: Receiver<ToUIMessage>,
     network_error_rx: Receiver<ErrorMessage>,
+    last_update_time: Instant,
 }
 
 impl App {
@@ -62,6 +65,7 @@ impl App {
             message_tx: tx,
             message_rx: rx,
             network_error_rx: error_rx,
+            last_update_time: Instant::now(),
         }
     }
 
@@ -117,6 +121,16 @@ impl App {
                 });
             });
     }
+
+    fn get_translation(&self, ctx: &egui::Context) {
+        let _ = self.message_tx.send(FromUIMessage {
+            input_lang: self.input_language.code().to_string(),
+            target_lang: self.target_language.code().to_string(),
+            text: self.input.clone(),
+        });
+
+        ctx.request_repaint();
+    }
 }
 
 impl eframe::App for App {
@@ -152,6 +166,7 @@ impl eframe::App for App {
                         &mut self.input_search,
                     );
                 });
+
                 ui.vertical_centered_justified(|ui| {
                     let frame = egui::Frame::new()
                         .fill(ui.visuals().text_edit_bg_color())
@@ -175,6 +190,7 @@ impl eframe::App for App {
                             });
                     });
                 });
+
                 if panel_bg.clicked() {
                     ui.memory_mut(|mem| mem.request_focus(input_edit_id));
                 }
@@ -235,21 +251,11 @@ impl eframe::App for App {
                         std::mem::swap(&mut self.input_language, &mut self.target_language);
                         std::mem::swap(&mut self.input, &mut self.output);
                     });
-
-                    ui.vertical_centered_justified(|ui| {
-                        if ui.small_button("Test").clicked() {
-                            let _ = self.message_tx.send(FromUIMessage {
-                                input_lang: self.input_language.code().to_string(),
-                                target_lang: self.target_language.code().to_string(),
-                                text: self.input.clone(),
-                            });
-                        }
-                    })
                 });
             });
     }
 
-    fn logic(&mut self, _ctx: &egui::Context, _frame: &mut Frame) {
+    fn logic(&mut self, ctx: &egui::Context, _frame: &mut Frame) {
         if let Ok(e) = self.network_error_rx.try_recv() {
             self.notifications.push(Notification {
                 message: e.error,
@@ -257,10 +263,21 @@ impl eframe::App for App {
                 is_critical_error: false,
                 instant: Instant::now(),
             });
+
+            ctx.request_repaint();
+        }
+
+        if (Instant::now().duration_since(self.last_update_time) >= UPDATE_TTL)
+            && !self.input.is_empty()
+        {
+            self.get_translation(ctx);
+            self.last_update_time = Instant::now()
         }
 
         if let Ok(m) = self.message_rx.try_recv() {
             self.output = m.text;
+
+            ctx.request_repaint();
         }
     }
 }
