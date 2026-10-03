@@ -118,7 +118,6 @@ pub fn load_config() -> (AppConfig, ProviderConfig, Vec<String>) {
 
         Err(e) => {
             println!("{}", e);
-            errors.push(e.to_string());
         }
     }
 
