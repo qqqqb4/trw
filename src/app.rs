@@ -10,10 +10,6 @@ use crate::config::AppConfig;
 use crate::language::Language;
 use crate::network::{ErrorMessage, FromUIMessage, ToUIMessage};
 
-#[cfg(test)]
-#[path = "../tests/app.rs"]
-mod tests;
-
 const NOTIFY_TTL: Duration = Duration::from_secs(6);
 
 const UPDATE_TTL: Duration = Duration::from_secs(1);

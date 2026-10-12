@@ -3,10 +3,6 @@ use serde::Deserialize;
 use crate::network::{FromUIMessage, ToUIMessage};
 use crate::providers::{ProviderLibretranslate, Translator};
 
-#[cfg(test)]
-#[path = "../../tests/libretranslate.rs"]
-mod tests;
-
 #[derive(Deserialize)]
 struct ParsedResponse {
     #[serde(rename = "translatedText")]

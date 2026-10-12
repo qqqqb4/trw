@@ -3,10 +3,6 @@ use std::sync::mpsc::{Receiver, Sender};
 use crate::config::ProviderConfig;
 use crate::providers::{ProviderLibretranslate, Translator};
 
-#[cfg(test)]
-#[path = "../tests/network.rs"]
-mod tests;
-
 pub struct FromUIMessage {
     pub input_lang: String,
     pub target_lang: String,

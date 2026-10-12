@@ -1,9 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-#[cfg(test)]
-#[path = "../tests/language.rs"]
-mod tests;
-
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Debug, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum Language {

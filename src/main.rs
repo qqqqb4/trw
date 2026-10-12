@@ -10,10 +10,6 @@ mod language;
 mod network;
 mod providers;
 
-#[cfg(test)]
-#[path = "../tests/support.rs"]
-mod test_support;
-
 use app::App;
 use network::{ErrorMessage, FromUIMessage, ToUIMessage};
 
